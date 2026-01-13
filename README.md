@@ -19,6 +19,8 @@ This repository contains the **backend API** for the GoalTracker application. Th
 - [Configuration](#configuration)
 - [API Documentation](#-api-documentation)
 - [Authentication & Roles](#-authentication--roles)
+- [Password Reset Flow](#-password-reset-flow)
+- [Build & Deploy](#build-deploy)
 - [License](#-license)
 - [Related Projects](#-related-projects)
 
@@ -307,6 +309,146 @@ A **SuperAdmin** account is automatically created on first application startup:
 - ✅Set strong SuperAdmin passwords
 - ✅Use User Secrets for development, environment variables for production
 - ❌ Never hardcode credentials or commit secrets to version control
+
+---
+
+## 🔑 Password Reset Flow
+
+The API provides a secure password recovery mechanism with rate limiting and CAPTCHA protection.
+
+### Flow Overview
+
+```
+1. User requests password reset
+   POST /api/password-recovery/{email}
+         ↓
+2. Server validates request (rate limit + CAPTCHA)
+         ↓
+3. Reset token generated (GUID, expires in 1 hour)
+         ↓
+4. Email sent with reset link
+         ↓
+5. User clicks link → Frontend validates token
+   GET /api/reset-password/{token}
+         ↓
+6. User submits new password
+   POST /api/reset-password
+         ↓
+7. Password updated, token marked as used
+         ↓
+8. Confirmation email sent
+```
+
+### Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/password-recovery/{email}` | Request password reset email |
+| `GET` | `/api/reset-password/{token}` | Validate reset token |
+| `POST` | `/api/reset-password` | Reset password with token |
+
+### Password Requirements
+
+- Minimum **12 characters**
+- At least one **uppercase** letter
+- At least one **lowercase** letter
+- At least one **digit**
+- At least one **special character**
+
+### Security Features
+
+- **Rate Limiting**: Prevents brute-force attacks on password recovery
+- **CAPTCHA**: Optional Google reCAPTCHA validation
+- **Token Expiration**: Tokens expire after 1 hour
+- **Single Use**: Tokens are invalidated after use
+- **IP Logging**: Request IP addresses are logged for security auditing
+
+---
+## <a id="build-deploy"></a>
+## 🏗️ Build & Deploy
+
+### Build
+
+```bash
+# Restore dependencies
+dotnet restore
+
+# Build in Debug mode
+dotnet build
+
+# Build in Release mode
+dotnet build --configuration Release
+
+# Run tests
+dotnet test
+```
+
+### Publish
+
+```bash
+# Publish for deployment
+dotnet publish --configuration Release --output ./publish
+```
+
+### Run in Production
+
+```bash
+# Set environment variables
+export ASPNETCORE_ENVIRONMENT=Production
+export DB_SERVER="your-server"
+export DB_NAME="GoalTrackerApiDB"
+export DB_USER="your-user"
+export DB_PASS="your-password"
+export Authentication__SecretKey="your-secret-key"
+export SuperAdminPassword="your-superadmin-password"
+
+# Run the application
+dotnet GoalTrackerApp.dll
+```
+
+### Docker (Optional)
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet restore
+RUN dotnet publish -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "GoalTrackerApp.dll"]
+```
+
+```bash
+# Build Docker image
+docker build -t goaltracker-api .
+
+# Run container
+docker run -d -p 5000:80 \
+  -e DB_SERVER="your-server" \
+  -e DB_NAME="GoalTrackerApiDB" \
+  -e DB_USER="your-user" \
+  -e DB_PASS="your-password" \
+  -e Authentication__SecretKey="your-secret-key" \
+  goaltracker-api
+```
+
+### Database Migrations
+
+```bash
+# Apply migrations
+dotnet ef database update --project GoalTrackerApp
+
+# Create new migration
+dotnet ef migrations add MigrationName --project GoalTrackerApp
+```
 
 ---
 
