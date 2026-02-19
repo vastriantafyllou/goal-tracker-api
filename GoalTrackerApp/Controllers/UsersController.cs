@@ -24,7 +24,7 @@ namespace GoalTrackerApp.Controllers
         /// Get user by ID
         /// </summary>
         [HttpGet("{id:int}")]
-        [Authorize(Roles = "SuperAdmin,Admin")]
+        // [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<ActionResult<UserReadOnlyDto>> GetUserById(int id)
         {
             UserReadOnlyDto userReadOnlyDto = await ApplicationService.UserService.GetUserByIdAsync(id);
@@ -91,7 +91,7 @@ namespace GoalTrackerApp.Controllers
         /// Update user by ID
         /// </summary>
         [HttpPut("{id:int}")]
-        [Authorize(Roles = "SuperAdmin,Admin")]
+        // [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<ActionResult<UserReadOnlyDto>> UpdateUser(int id, [FromBody] UserUpdateDto userUpdateDto)
         {
             if (!ModelState.IsValid)
